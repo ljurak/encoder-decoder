@@ -1,12 +1,17 @@
 package app;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Random;
 import java.util.Scanner;
 
 public class Main {
 
     public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
+        /*Scanner scanner = new Scanner(System.in);
         Random random = new Random();
 
         String message = scanner.nextLine();
@@ -19,7 +24,129 @@ public class Main {
         System.out.println(message);
 
         message = decode(message);
-        System.out.println(message);
+        System.out.println(message);*/
+
+        Random random = new Random();
+
+        try (InputStream in = Files.newInputStream(Paths.get("send.txt"));
+             OutputStream out = Files.newOutputStream(Paths.get("received.txt"))) {
+            int b;
+            String binary;
+            while ((b = in.read()) != -1) {
+                binary = getBinaryString(b, true);
+                binary = changeBit(binary, random);
+                b = getIntegerFromBinaryString(binary);
+                out.write(b);
+            }
+        } catch (IOException e) {
+            System.err.println("Error occured during reading/writing from/to a file");
+        }
+
+        /*showMenu();
+        int option;
+        while ((option = Integer.parseInt(scanner.nextLine())) != 0) {
+            System.out.println();
+            switch (option) {
+                case 1:
+                    break;
+                default:
+                    System.out.println("Incorrect option! Try again.\n");
+                    break;
+            }
+            showMenu();
+        }*/
+    }
+
+    /**
+     * Converts positive integer to a binary string representation.
+     *
+     * @param n positive integer
+     * @param withLeadingZeros whether should append leading zeroes
+     * @return binary string representation of a given number
+     */
+    private static String getBinaryString(int n, boolean withLeadingZeros) {
+        StringBuilder sb = new StringBuilder();
+        if (n == 0) {
+            sb.append("0");
+        }
+
+        int number = n;
+        while (number != 0) {
+            sb.append(number % 2);
+            number >>= 1;
+        }
+
+        if (withLeadingZeros) {
+            int length = sb.length();
+            while (length % 8 != 0) {
+                sb.append("0");
+                length++;
+            }
+        }
+
+        return sb.reverse().toString();
+    }
+
+    /**
+     * Converts given binary string to integer value.
+     *
+     * @param binary binary string representation of a number
+     * @return integer value
+     */
+    private static int getIntegerFromBinaryString(String binary) {
+        char[] bits = binary.toCharArray();
+
+        int result = 0;
+        int powerOfTwo = 1;
+        for (int i = bits.length - 1; i >= 0; i--) {
+            result = bits[i] == '0' ? result : result + powerOfTwo;
+            powerOfTwo *= 2;
+        }
+        return result;
+    }
+
+    /**
+     * Converts positive integer to a hexadecimal string representation.
+     *
+     * @param n positive integer
+     * @param withLeadingZeros whether should append leading zeroes
+     * @return hexadecimal string representation of a given number
+     */
+    private static String getHexString(int n, boolean withLeadingZeros) {
+        StringBuilder sb = new StringBuilder();
+        if (n == 0) {
+            sb.append("0");
+        }
+
+        char[] hexDigits = new char[] {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+
+        int number = n;
+        while (number != 0) {
+            sb.append(hexDigits[number % 16]);
+            number >>= 4;
+        }
+
+        if (withLeadingZeros) {
+            if (sb.length() % 2 != 0) {
+                sb.append(0);
+            }
+        }
+
+        return sb.reverse().toString();
+    }
+
+    /**
+     * Changes one bit to opposite from the passed binary string.
+     *
+     * @param binaryString string representing number in a binary system (e.g. 00101011)
+     * @param random random number generator
+     * @return input string with one bit replaced by opposite bit
+     */
+    private static String changeBit(String binaryString, Random random) {
+        StringBuilder sb = new StringBuilder(binaryString);
+        int index = random.nextInt(sb.length());
+        sb.setCharAt(index, sb.charAt(index) == '0' ? '1' : '0');
+        return sb.toString();
     }
 
     /**
