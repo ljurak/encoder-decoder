@@ -6,7 +6,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Random;
 import java.util.Scanner;
 
 public class Main {
@@ -34,20 +33,6 @@ public class Main {
             }
             System.out.print("Write a mode: ");
         }
-
-        /*try (InputStream in = Files.newInputStream(Paths.get("send.txt"));
-             OutputStream out = Files.newOutputStream(Paths.get("received.txt"))) {
-            int b;
-            String binary;
-            while ((b = in.read()) != -1) {
-                binary = getBinaryString(b, true);
-                binary = changeBit(binary, random);
-                b = getIntegerFromBinaryString(binary);
-                out.write(b);
-            }
-        } catch (IOException e) {
-            System.err.println("Error occurred during reading/writing from/to a file");
-        }*/
     }
 
     private static void processEncoding(MessageEncoder encoder) {
@@ -123,29 +108,16 @@ public class Main {
             System.out.println("bin view: " + encoder.getBinaryString(bytes));
             System.out.println();
 
-            /*byte[] decodedBytes = encoder.changeBits(bytes);
+            byte[] decodedBytes = encoder.decode(bytes);
             out.write(decodedBytes);
 
             System.out.println("decoded.txt:");
+            System.out.println("text view: " + new String(decodedBytes));
             System.out.println("hex view: " + encoder.getHexString(decodedBytes));
             System.out.println("bin view: " + encoder.getBinaryString(decodedBytes));
-            System.out.println();*/
+            System.out.println();
         } catch (IOException e) {
             System.err.println("Error occurred during reading/writing from/to a file");
         }
-    }
-
-    /**
-     * Changes one bit to opposite from the passed binary string.
-     *
-     * @param binaryString string representing number in a binary system (e.g. 00101011)
-     * @param random random number generator
-     * @return input string with one bit replaced by opposite bit
-     */
-    private static String changeBit(String binaryString, Random random) {
-        StringBuilder sb = new StringBuilder(binaryString);
-        int index = random.nextInt(sb.length());
-        sb.setCharAt(index, sb.charAt(index) == '0' ? '1' : '0');
-        return sb.toString();
     }
 }
