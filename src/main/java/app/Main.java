@@ -1,5 +1,6 @@
 package app;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -11,24 +12,30 @@ import java.util.Scanner;
 public class Main {
 
     public static void main(String[] args) {
-        /*Scanner scanner = new Scanner(System.in);
-        Random random = new Random();
+        Scanner scanner = new Scanner(System.in);
+        MessageEncoder encoder = new MessageEncoder();
 
-        String message = scanner.nextLine();
-        System.out.println(message);
+        System.out.print("Write a mode: ");
+        ProgramMode mode;
+        while ((mode = ProgramMode.valueOfMode(scanner.nextLine().toLowerCase())) != null) {
+            System.out.println();
+            switch (mode) {
+                case ENCODE:
+                    processEncoding(encoder);
+                    break;
+                case SEND:
+                    processSending(encoder);
+                    break;
+                case DECODE:
+                    processDecoding(encoder);
+                    break;
+                default:
+                    break;
+            }
+            System.out.print("Write a mode: ");
+        }
 
-        message = encode(message);
-        System.out.println(message);
-
-        message = makeErrors(message, random);
-        System.out.println(message);
-
-        message = decode(message);
-        System.out.println(message);*/
-
-        Random random = new Random();
-
-        try (InputStream in = Files.newInputStream(Paths.get("send.txt"));
+        /*try (InputStream in = Files.newInputStream(Paths.get("send.txt"));
              OutputStream out = Files.newOutputStream(Paths.get("received.txt"))) {
             int b;
             String binary;
@@ -39,100 +46,93 @@ public class Main {
                 out.write(b);
             }
         } catch (IOException e) {
-            System.err.println("Error occured during reading/writing from/to a file");
-        }
-
-        /*showMenu();
-        int option;
-        while ((option = Integer.parseInt(scanner.nextLine())) != 0) {
-            System.out.println();
-            switch (option) {
-                case 1:
-                    break;
-                default:
-                    System.out.println("Incorrect option! Try again.\n");
-                    break;
-            }
-            showMenu();
+            System.err.println("Error occurred during reading/writing from/to a file");
         }*/
     }
 
-    /**
-     * Converts positive integer to a binary string representation.
-     *
-     * @param n positive integer
-     * @param withLeadingZeros whether should append leading zeroes
-     * @return binary string representation of a given number
-     */
-    private static String getBinaryString(int n, boolean withLeadingZeros) {
-        StringBuilder sb = new StringBuilder();
-        if (n == 0) {
-            sb.append("0");
-        }
-
-        int number = n;
-        while (number != 0) {
-            sb.append(number % 2);
-            number >>= 1;
-        }
-
-        if (withLeadingZeros) {
-            int length = sb.length();
-            while (length % 8 != 0) {
-                sb.append("0");
-                length++;
+    private static void processEncoding(MessageEncoder encoder) {
+        try (InputStream in = Files.newInputStream(Paths.get("send.txt"));
+             ByteArrayOutputStream bout = new ByteArrayOutputStream();
+             OutputStream out = Files.newOutputStream(Paths.get("encoded.txt"))) {
+            int b;
+            while ((b = in.read()) != -1) {
+                bout.write(b);
             }
-        }
 
-        return sb.reverse().toString();
+            byte[] bytes = bout.toByteArray();
+
+            System.out.println("send.txt:");
+            System.out.println("text view: " + new String(bytes));
+            System.out.println("hex view: " + encoder.getHexString(bytes));
+            System.out.println("bin view: " + encoder.getBinaryString(bytes));
+            System.out.println();
+
+            byte[] encodedBytes = encoder.encode(bytes);
+            out.write(encodedBytes);
+
+            System.out.println("encoded.txt:");
+            System.out.println("hex view: " + encoder.getHexString(encodedBytes));
+            System.out.println("bin view: " + encoder.getBinaryString(encodedBytes));
+            System.out.println();
+        } catch (IOException e) {
+            System.err.println("Error occurred during reading/writing from/to a file");
+        }
     }
 
-    /**
-     * Converts given binary string to integer value.
-     *
-     * @param binary binary string representation of a number
-     * @return integer value
-     */
-    private static int getIntegerFromBinaryString(String binary) {
-        char[] bits = binary.toCharArray();
+    private static void processSending(MessageEncoder encoder) {
+        try (InputStream in = Files.newInputStream(Paths.get("encoded.txt"));
+             ByteArrayOutputStream bout = new ByteArrayOutputStream();
+             OutputStream out = Files.newOutputStream(Paths.get("received.txt"))) {
+            int b;
+            while ((b = in.read()) != -1) {
+                bout.write(b);
+            }
 
-        int result = 0;
-        int powerOfTwo = 1;
-        for (int i = bits.length - 1; i >= 0; i--) {
-            result = bits[i] == '0' ? result : result + powerOfTwo;
-            powerOfTwo *= 2;
+            byte[] bytes = bout.toByteArray();
+
+            System.out.println("encoded.txt:");
+            System.out.println("hex view: " + encoder.getHexString(bytes));
+            System.out.println("bin view: " + encoder.getBinaryString(bytes));
+            System.out.println();
+
+            byte[] corruptedBytes = encoder.changeBits(bytes);
+            out.write(corruptedBytes);
+
+            System.out.println("received.txt:");
+            System.out.println("hex view: " + encoder.getHexString(corruptedBytes));
+            System.out.println("bin view: " + encoder.getBinaryString(corruptedBytes));
+            System.out.println();
+        } catch (IOException e) {
+            System.err.println("Error occurred during reading/writing from/to a file");
         }
-        return result;
     }
 
-    /**
-     * Converts positive integer to a hexadecimal string representation.
-     *
-     * @param n positive integer
-     * @param withLeadingZeros whether should append leading zeroes
-     * @return hexadecimal string representation of a given number
-     */
-    private static String getHexString(int n, boolean withLeadingZeros) {
-        StringBuilder sb = new StringBuilder();
-        if (n == 0) {
-            sb.append("0");
-        }
-
-        char[] hexDigits = new char[] {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-
-        int number = n;
-        while (number != 0) {
-            sb.append(hexDigits[number % 16]);
-            number >>= 4;
-        }
-
-        if (withLeadingZeros) {
-            if (sb.length() % 2 != 0) {
-                sb.append(0);
+    private static void processDecoding(MessageEncoder encoder) {
+        try (InputStream in = Files.newInputStream(Paths.get("received.txt"));
+             ByteArrayOutputStream bout = new ByteArrayOutputStream();
+             OutputStream out = Files.newOutputStream(Paths.get("decoded.txt"))) {
+            int b;
+            while ((b = in.read()) != -1) {
+                bout.write(b);
             }
-        }
 
-        return sb.reverse().toString();
+            byte[] bytes = bout.toByteArray();
+
+            System.out.println("received.txt:");
+            System.out.println("hex view: " + encoder.getHexString(bytes));
+            System.out.println("bin view: " + encoder.getBinaryString(bytes));
+            System.out.println();
+
+            /*byte[] decodedBytes = encoder.changeBits(bytes);
+            out.write(decodedBytes);
+
+            System.out.println("decoded.txt:");
+            System.out.println("hex view: " + encoder.getHexString(decodedBytes));
+            System.out.println("bin view: " + encoder.getBinaryString(decodedBytes));
+            System.out.println();*/
+        } catch (IOException e) {
+            System.err.println("Error occurred during reading/writing from/to a file");
+        }
     }
 
     /**
@@ -147,81 +147,5 @@ public class Main {
         int index = random.nextInt(sb.length());
         sb.setCharAt(index, sb.charAt(index) == '0' ? '1' : '0');
         return sb.toString();
-    }
-
-    /**
-     * Encodes the message by tripling all the characters.
-     *
-     * @param message message to encode
-     * @return encoded message
-     */
-    private static String encode(String message) {
-        char[] input = message.toCharArray();
-        char[] output = new char[3 * input.length];
-
-        for (int i = 0; i < output.length; i++) {
-            output[i] = input[i / 3];
-        }
-        return new String(output);
-    }
-
-    /**
-     * Decodes the message broken by makeErrors method.
-     *
-     * @param message message to decode
-     * @return decoded message
-     */
-    private static String decode(String message) {
-        char[] input = message.toCharArray();
-        char[] output = new char[input.length / 3];
-
-        for (int i = 0; i < output.length; i++) {
-            char first = input[3 * i];
-            char second = input[3 * i + 1];
-            char third = input[3 * i + 2];
-            output[i] = (first == second)
-                    ? first
-                    : ((first == third) ? first : second);
-        }
-        return new String(output);
-    }
-
-    /**
-     * Simulates errors caused by wireless connections interference.
-     * One random character is replaced by another random one per 3 characters.
-     *
-     * @param input string to make errors
-     * @param  random random number generator
-     * @return string with errors
-     */
-    private static String makeErrors(String input, Random random) {
-        char[] chars = input.toCharArray();
-
-        int start = 0;
-        int end = 0;
-        for (int i = 0; i <= chars.length; i++) {
-            if (i > 0 && i % 3 == 0) {
-                end = i;
-                replaceCharacter(chars, start, end, random);
-                start = end;
-            }
-        }
-
-        return new String(chars);
-    }
-
-    /**
-     * Replaces one character from start (inclusive) to end (exclusive)
-     * by a random character.
-     *
-     * @param chars array of characters
-     * @param start start index (inclusive)
-     * @param end end index (exclusive)
-     * @param  random random number generator
-     */
-    private static void replaceCharacter(char[] chars, int start, int end, Random random) {
-        int replacedIndex = start + random.nextInt(end - start);
-        char randomCharacter = (char) (32 + random.nextInt(95));
-        chars[replacedIndex] = randomCharacter;
     }
 }
