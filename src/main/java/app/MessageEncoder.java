@@ -1,6 +1,5 @@
 package app;
 
-import java.io.ByteArrayOutputStream;
 import java.util.Random;
 
 public class MessageEncoder {
@@ -117,6 +116,12 @@ public class MessageEncoder {
 
     /* BIT LEVEL OPERATIONS */
 
+    /**
+     * Encodes byte array by writing every bit twice, in every byte 2 last bits are bits of parity.
+     *
+     * @param bytes bytes to encode
+     * @return encoded bytes
+     */
     public byte[] encode(byte[] bytes) {
         StringBuilder sb = new StringBuilder();
 
@@ -153,11 +158,66 @@ public class MessageEncoder {
         }
 
         String[] parts = sb.toString().split(" ");
-        ByteArrayOutputStream out = new ByteArrayOutputStream(3 * bytes.length);
-        for (String part : parts) {
-            out.write(getIntegerFromBinaryString(part));
+        byte[] output = new byte[parts.length];
+        for (int i = 0; i < output.length; i++) {
+            output[i] = (byte) getIntegerFromBinaryString(parts[i]);
         }
-        return out.toByteArray();
+        return output;
+    }
+
+    /**
+     * Decodes bytes encoded with encode method.
+     *
+     * @param bytes bytes to decode
+     * @return decoded bytes
+     */
+    public byte[] decode(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+
+        int bitsCount = 0;
+        int corruptedBit = -1;
+        byte[] triples = new byte[3];
+        for (byte b : bytes) {
+            char[] bits = getBinaryString(b, true).toCharArray();
+
+            for (int i = 0; i < 6; i += 2) {
+                if (bits[i] == bits[i + 1]) {
+                    triples[i / 2] = (byte) (bits[i] == '0' ? 0 : 1);
+                } else {
+                    triples[i / 2] = 0;
+                    corruptedBit = i / 2;
+                }
+            }
+
+            if (corruptedBit != -1) {
+                byte parity = (byte) (bits[6] == '0' ? 0 : 1);
+                if ((triples[0] ^ triples[1] ^ triples[2]) != parity) {
+                    triples[corruptedBit] = 1;
+                }
+            }
+
+            for (int i = 0; i < 3; i++) {
+                sb.append(triples[i]);
+                bitsCount++;
+
+                if (bitsCount == 8) {
+                    sb.append(' ');
+                    bitsCount = 0;
+                }
+            }
+
+            corruptedBit = -1;
+        }
+
+        int lastSpace = sb.lastIndexOf(" ");
+        sb.delete(lastSpace, sb.length());
+
+        String[] parts = sb.toString().split(" ");
+        byte[] output = new byte[parts.length];
+        for (int i = 0; i < output.length; i++) {
+            output[i] = (byte) getIntegerFromBinaryString(parts[i]);
+        }
+        return output;
     }
 
     /**
@@ -187,7 +247,7 @@ public class MessageEncoder {
      * @param message message to encode
      * @return encoded message
      */
-    private static String encode(String message) {
+    public String encode(String message) {
         char[] input = message.toCharArray();
         char[] output = new char[3 * input.length];
 
@@ -203,7 +263,7 @@ public class MessageEncoder {
      * @param message message to decode
      * @return decoded message
      */
-    private static String decode(String message) {
+    public String decode(String message) {
         char[] input = message.toCharArray();
         char[] output = new char[input.length / 3];
 
@@ -226,7 +286,7 @@ public class MessageEncoder {
      * @param  random random number generator
      * @return string with errors
      */
-    private static String makeErrors(String input, Random random) {
+    public String makeErrors(String input, Random random) {
         char[] chars = input.toCharArray();
 
         int start = 0;
@@ -251,7 +311,7 @@ public class MessageEncoder {
      * @param end end index (exclusive)
      * @param  random random number generator
      */
-    private static void replaceCharacter(char[] chars, int start, int end, Random random) {
+    private void replaceCharacter(char[] chars, int start, int end, Random random) {
         int replacedIndex = start + random.nextInt(end - start);
         char randomCharacter = (char) (32 + random.nextInt(95));
         chars[replacedIndex] = randomCharacter;
